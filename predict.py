@@ -68,20 +68,34 @@ def process_image(image):
     ''' Scales, crops, and normalizes a PIL image for a PyTorch model,
         returns an Numpy array
     '''
+    
+    # Process a PIL image for use in a PyTorch model
     # Open and resize the image
     im = Image.open(image)
+    # print('Image original size: {}'.format(im.size))
 
-    # Define the transform functions
+    # Resize the smaller edge to 256
+    sizing_ratio = min(im.size[0], im.size[1])/256
+    resizing_size = int(im.size[0]/sizing_ratio), int(im.size[1]/sizing_ratio)
+    im = im.resize(resizing_size)
+
+    # Crop center
+    width = im.size[0]
+    height = im.size[1]
+    crop_size = 224
+    target_rect = (width-crop_size)/2, (height-crop_size)/2, (width+crop_size)/2, (height+crop_size)/2
+    target_rect = tuple(map(int, target_rect))
+    im = im.crop(target_rect)
+    # print('Image final size: {}'.format(im.size))
+    
+    # Convert to numpy array and normalize
+    im = np.array(im) / 255
     mean = np.array([0.485, 0.456, 0.406])
     std = np.array([0.229, 0.224, 0.225])
-    transform = transforms.Compose([
-        transforms.Resize(256),
-        transforms.CenterCrop(224),
-        transforms.ToTensor(),
-        transforms.Normalize(mean,std)
-    ])
-
-    return transform(im)
+    im = (im-mean)/std
+    
+    
+    return torch.tensor(im.transpose((2, 0, 1)), dtype=torch.float)
 
 
 # Reverse the class_to_idx dictionary
